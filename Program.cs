@@ -4,6 +4,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Telegram.Bot;
+using VoiceTexterBot.Configuration;
+using VoiceTexterBot.Controllers;
+using VoiceTexterBot.Services;
 
 namespace VoiceTexterBot
 {
@@ -27,10 +30,37 @@ namespace VoiceTexterBot
 
         static void ConfigureServices(IServiceCollection services)
         {
+            AppSettings appSettings = BuildAppSettings();
+            services.AddSingleton(BuildAppSettings());
+
+            // сделать хранилище сессий доступным всем компонентам приложения
+            services.AddSingleton<IStorage, MemoryStorage>();
+
+            services.AddSingleton<IFileHandler, AudioFileHandler>();
+
+            // Подключаем контроллеры сообщений и кнопок
+            services.AddTransient<DefaultMessageController>();
+            services.AddTransient<VoiceMessageController>();
+            services.AddTransient<TextMessageController>();
+            services.AddTransient<InlineKeyboardController>();
+
             // Регистрируем объект TelegramBotClient c токеном подключения
-            services.AddSingleton<ITelegramBotClient>(provider => new TelegramBotClient("6830822700:AAGR06f2D2dW20UhYvrVxwdgTZDG9TiL1mg"));
+            services.AddSingleton<ITelegramBotClient>(provider => new TelegramBotClient(appSettings.BotToken));
             // Регистрируем постоянно активный сервис бота
             services.AddHostedService<Bot>();
+        }
+
+        static AppSettings BuildAppSettings()
+        {
+            return new AppSettings()
+            {
+                DownloadsFolder = "C:\\Users\\amigo\\Downloads",
+                BotToken = "6830822700:AAGR06f2D2dW20UhYvrVxwdgTZDG9TiL1mg",
+                AudioFileName = "audio",
+                InputAudioFormat = "ogg",
+                OutputAudioFormat = "wav",
+                InputAudioBitrate = 48000,
+            };
         }
     }
 }
